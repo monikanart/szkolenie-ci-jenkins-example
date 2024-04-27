@@ -8,24 +8,32 @@ pipeline {
     }
 
     stages {
+        stage('Clean') {
+            steps {
+               cleanWs()
+            }
+        }
+        
         stage('Build') {
             steps {
-                // Get some code from a GitHub repository
-                git url: 'https://github.com/rechandler12/szkolenie-ci-jenkins-example.git', branch: 'main'
-
-                // Run Maven on a Unix agent.
-                sh "mvn clean spring-boot:build-image"
+                git branch: 'main', url: 'https://github.com/spring-projects/spring-petclinic'
+                sh 'mvn clean verify'
             }
         }
     }
     
     post {
-        // If Maven was able to run the tests, even if some of the test
-        // failed, record the test results and archive the jar file.
+        always {
+            junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
+        }
         success {
-            junit '**/target/surefire-reports/TEST-*.xml'
-            archiveArtifacts 'target/*.jar'
-            slackSend color: "good", message: "Message from Jenkins Pipeline"
+            slackSend  channel: "#jenkins-monika-nartowska", message: "Build success ${env.BUILD_TAG} ${env.BUILD_URL}"
+        }
+        failure {
+            slackSend   channel: "#jenkins-monika-nartowska", message: "Failure success"
+        }
+        unstable {
+            slackSend channel: "#jenkins-monika-nartowska", message: "Unstable success"
         }
     }
 }
